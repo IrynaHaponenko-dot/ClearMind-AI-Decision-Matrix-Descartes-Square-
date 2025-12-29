@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="uk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Decision Matrix (Descartes) — ClearMind AI</title>
+    <meta
+      name="description"
+      content="Інструмент прийняття зважених рішень за методом Квадрата Декарта."
+    />
+    <style>
+      /* --- Design System (Consistent) --- */
+      :root {
+        --bg-main: #090c10;
+        --bg-card: #161b22;
+        --bg-input: #0d1117;
+        --border-subtle: #30363d;
+        --border-focus: #58a6ff;
+        --accent-primary: #238636; /* Success Green for Decisions */
+        --accent-hover: #2ea043;
+        --accent-danger: #da3633;
+        --accent-neutral: #8b949e;
+        --text-main: #c9d1d9;
+        --text-muted: #8b949e;
+        --text-header: #f0f6fc;
+
+        --radius-sm: 6px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+
+        --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        --transition: all 0.2s ease-in-out;
+        --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
+      }
+
+      /* --- Base --- */
+      * {
+        box-sizing: border-box;
+        outline: none;
+      }
+      body {
+        margin: 0;
+        background-color: var(--bg-main);
+        color: var(--text-main);
+        font-family: var(--font-family);
+        line-height: 1.5;
+      }
+      h1,
+      h2,
+      h3,
+      h4 {
+        color: var(--text-header);
+        margin: 0;
+        font-weight: 600;
+      }
+      a {
+        color: var(--accent-primary);
+        text-decoration: none;
+        transition: var(--transition);
+      }
+      a:hover {
+        color: var(--accent-hover);
+        text-decoration: underline;
+      }
+
+      /* --- Layout --- */
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 20px;
+        display: grid;
+        gap: 24px;
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+      .logo-area h1 {
+        font-size: 24px;
+        letter-spacing: -0.5px;
+      }
+      .logo-area span {
+        font-size: 12px;
+        text-transform: uppercase;
+        color: var(--accent-primary);
+        letter-spacing: 1px;
+        font-weight: 700;
+      }
+
+      .app-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 30px;
+      }
+      /* Decision matrix needs wide view, prompts below */
+      @media (min-width: 900px) {
+        .app-grid {
+          grid-template-columns: 2fr 1fr;
+          align-items: start;
+        }
+      }
+
+      /* --- Cards & Inputs --- */
+      .card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        padding: 24px;
+        box-shadow: var(--shadow-card);
+      }
+
+      label {
+        display: block;
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-bottom: 6px;
+        font-weight: 500;
+      }
+
+      input[type="text"],
+      textarea {
+        width: 100%;
+        background: var(--bg-input);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-sm);
+        padding: 12px;
+        color: var(--text-main);
+        font-family: inherit;
+        font-size: 14px;
+        transition: var(--transition);
+        resize: none;
+        overflow: hidden;
+      }
+      input:focus,
+      textarea:focus {
+        border-color: var(--accent-primary);
+      }
+
+      /* --- Matrix Grid --- */
+      .matrix-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-top: 20px;
+      }
+      @media (max-width: 700px) {
+        .matrix-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .quadrant {
+        padding: 16px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-subtle);
+        background: rgba(255, 255, 255, 0.01);
+        position: relative;
+      }
+
+      .quadrant h4 {
+        font-size: 14px;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .quadrant p {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-bottom: 12px;
+        opacity: 0.8;
+      }
+
+      /* Quadrant Colors */
+      .q-plus-do {
+        border-top: 3px solid var(--accent-primary);
+      } /* Gain */
+      .q-plus-dont {
+        border-top: 3px solid var(--accent-neutral);
+      } /* Status Quo */
+      .q-minus-do {
+        border-top: 3px solid var(--accent-danger);
+      } /* Loss */
+      .q-minus-dont {
+        border-top: 3px solid var(--accent-danger);
+      } /* Missed Opportunity */
+
+      /* --- Buttons --- */
+      .btn {
+        cursor: pointer;
+        padding: 10px 16px;
+        border-radius: var(--radius-sm);
+        font-weight: 600;
+        font-size: 14px;
+        border: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: var(--transition);
+      }
+      .btn-secondary {
+        background: transparent;
+        border: 1px solid var(--border-subtle);
+        color: var(--text-main);
+      }
+      .btn-secondary:hover {
+        border-color: var(--text-muted);
+        background: rgba(255, 255, 255, 0.03);
+      }
+      .btn-sm {
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+
+      /* --- Outputs --- */
+      .output-block {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        margin-bottom: 16px;
+        overflow: hidden;
+      }
+      .output-header {
+        padding: 10px 14px;
+        background: rgba(255, 255, 255, 0.02);
+        border-bottom: 1px solid var(--border-subtle);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .output-header span {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+      }
+      pre {
+        margin: 0;
+        padding: 14px;
+        white-space: pre-wrap;
+        font-family: monospace;
+        font-size: 13px;
+        color: var(--text-main);
+        overflow-x: auto;
+      }
+
+      /* --- Footer --- */
+      .app-footer {
+        margin-top: 60px;
+        padding-top: 40px;
+        border-top: 1px solid var(--border-subtle);
+      }
+      .footer-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 40px;
+        margin-bottom: 40px;
+      }
+      @media (max-width: 768px) {
+        .footer-grid {
+          grid-template-columns: 1fr;
+          gap: 30px;
+        }
+      }
+      .footer-title {
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+        margin-bottom: 16px;
+      }
+      .author-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .social-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--text-main);
+        font-weight: 500;
+        padding: 8px 0;
+      }
+      .social-link:hover {
+        color: #e1306c;
+      }
+      .btn-support {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(255, 221, 0, 0.1);
+        color: #ffdd00;
+        border: 1px solid rgba(255, 221, 0, 0.3);
+        padding: 12px 20px;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .btn-support:hover {
+        background: #ffdd00;
+        color: #000;
+        transform: translateY(-2px);
+      }
+      .footer-bottom {
+        border-top: 1px solid var(--border-subtle);
+        padding-top: 20px;
+        padding-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .footer-links a {
+        color: var(--text-muted);
+        margin-left: 10px;
+      }
+
+      /* Toast */
+      #toast {
+        visibility: hidden;
+        min-width: 250px;
+        background-color: var(--bg-card);
+        color: var(--text-main);
+        border: 1px solid var(--accent-primary);
+        text-align: center;
+        border-radius: var(--radius-sm);
+        padding: 12px;
+        position: fixed;
+        z-index: 100;
+        left: 50%;
+        bottom: 30px;
+        transform: translateX(-50%);
+        opacity: 0;
+        transition: opacity 0.3s, bottom 0.3s;
+      }
+      #toast.show {
+        visibility: visible;
+        opacity: 1;
+        bottom: 50px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div class="logo-area">
+          <span>ClearMind AI</span>
+          <h1>Decision Matrix</h1>
+        </div>
+        <div class="header-actions">
+          <button id="resetBtn" class="btn btn-secondary">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              style="margin-right: 6px"
+            >
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 12" />
+            </svg>
+            Очистити
+          </button>
+        </div>
+      </header>
+
+      <main class="app-grid">
+        <section class="input-section">
+          <article class="card">
+            <div class="form-group">
+              <label
+                for="dilemma"
+                style="font-size: 15px; color: var(--text-header)"
+                >🤔 Твоя Дилема (Робити чи ні?)</label
+              >
+              <input
+                type="text"
+                id="dilemma"
+                placeholder="Напр: Чи варто мені звільнятися з роботи заради стартапу?"
+              />
+            </div>
+
+            <div class="matrix-grid">
+              <div class="quadrant q-plus-do">
+                <h4>➕ Що БУДЕ, якщо це станеться?</h4>
+                <p>Переваги від дії. Що ти отримаєш?</p>
+                <textarea
+                  id="q1"
+                  rows="3"
+                  placeholder="- Свобода вибору &#10;- Потенційно вищий дохід..."
+                ></textarea>
+              </div>
+
+              <div class="quadrant q-plus-dont">
+                <h4>⏸️ Що БУДЕ, якщо це НЕ станеться?</h4>
+                <p>Плюси статус-кво. Що залишиться добрим?</p>
+                <textarea
+                  id="q2"
+                  rows="3"
+                  placeholder="- Стабільна зарплата &#10;- Гарний соцпакет..."
+                ></textarea>
+              </div>
+
+              <div class="quadrant q-minus-do">
+                <h4>➖ Чого НЕ БУДЕ, якщо це станеться?</h4>
+                <p>Ціна зміни. Що ти втратиш?</p>
+                <textarea
+                  id="q3"
+                  rows="3"
+                  placeholder="- Спокійних вихідних &#10;- Спілкування з колегами..."
+                ></textarea>
+              </div>
+
+              <div class="quadrant q-minus-dont">
+                <h4>🚫 Чого НЕ БУДЕ, якщо це НЕ станеться?</h4>
+                <p>Ціна бездіяльності. Що ти втратиш, якщо нічого не зміниш?</p>
+                <textarea
+                  id="q4"
+                  rows="3"
+                  placeholder="- Шансу реалізувати мрію &#10;- Відчуття росту..."
+                ></textarea>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section class="output-section" style="position: sticky; top: 20px">
+          <div class="card">
+            <h2 style="margin-bottom: 16px">AI Вердикт</h2>
+            <p
+              style="
+                font-size: 13px;
+                color: var(--text-muted);
+                margin-bottom: 20px;
+              "
+            >
+              Цей інструмент допомагає зважити емоційне та раціональне. Скопіюй
+              промпт.
+            </p>
+
+            <div class="output-block">
+              <div class="output-header">
+                <span>Matrix Summary</span>
+                <button
+                  class="btn btn-sm btn-secondary copy-btn"
+                  data-target="summaryOutput"
+                >
+                  Copy
+                </button>
+              </div>
+              <pre id="summaryOutput">Заповни матрицю...</pre>
+            </div>
+
+            <div
+              class="output-block"
+              style="border-color: var(--accent-primary)"
+            >
+              <div class="output-header">
+                <span>Analyst Prompt</span>
+                <button
+                  class="btn btn-sm btn-secondary copy-btn"
+                  data-target="promptOutput"
+                >
+                  Copy Prompt
+                </button>
+              </div>
+              <pre id="promptOutput">Промт згенерується тут...</pre>
+            </div>
+
+            <div
+              style="
+                margin-top: 12px;
+                font-size: 13px;
+                color: var(--text-muted);
+              "
+            >
+              Порада: Найскладніше поле — четверте (праворуч унизу). Це
+              приховані втрати від страху діяти.
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="app-footer">
+        <div class="footer-grid">
+          <div class="footer-column author-col">
+            <h4 class="footer-title">Автор інструменту</h4>
+            <div class="author-info">
+              <div class="author-text">
+                <p><strong>Iryna Haponenko</strong></p>
+                <p class="text-muted">
+                  Досліджую AI, створюю інструменти для ясності мислення.
+                </p>
+              </div>
+            </div>
+            <a
+              href="https://www.linkedin.com/in/iryna-haponenko-1087072a0/"
+              target="_blank"
+              class="social-link linkedin"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"
+                ></path>
+                <rect x="2" y="9" width="4" height="12"></rect>
+                <circle cx="4" cy="4" r="2"></circle>
+              </svg>
+              <span>LinkedIn: Iryna Haponenko</span>
+            </a>
+            <a
+              href="https://www.instagram.com/yarinka1217"
+              target="_blank"
+              class="social-link instagram"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                <path
+                  d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"
+                ></path>
+                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+              </svg>
+              <span>Instagram: @yarinka1217</span>
+            </a>
+          </div>
+          <div class="footer-column support-col">
+            <h4 class="footer-title">Підтримати проект</h4>
+            <p class="text-muted" style="margin-bottom: 12px">
+              Цей інструмент безкоштовний. Твій донат — це паливо для нових фіч.
+            </p>
+            <a
+              href="https://buymeacoffee.com/irynahaponenko"
+              target="_blank"
+              class="btn-support"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+                <line x1="6" y1="1" x2="6" y2="4"></line>
+                <line x1="10" y1="1" x2="10" y2="4"></line>
+                <line x1="14" y1="1" x2="14" y2="4"></line>
+              </svg>
+              Пригостити кавою
+            </a>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <span>&copy; <span id="year"></span> ClearMind AI.</span>
+          <div class="footer-links"><a href="#">Privacy</a></div>
+        </div>
+      </footer>
+    </div>
+
+    <div id="toast">Текст скопійовано!</div>
+
+    <script>
+      class DecisionApp {
+        constructor() {
+          this.storageKey = "clearmind_decision_v1";
+
+          this.state = {
+            dilemma: "",
+            q1: "", // Do / Happen (Pros)
+            q2: "", // Don't / Happen (Status Quo)
+            q3: "", // Do / Not Happen (Losses)
+            q4: "", // Don't / Not Happen (Opportunity Cost)
+          };
+
+          this.dom = {
+            inputs: document.querySelectorAll("input, textarea"),
+            outputs: {
+              summary: document.getElementById("summaryOutput"),
+              prompt: document.getElementById("promptOutput"),
+            },
+            buttons: {
+              reset: document.getElementById("resetBtn"),
+              copies: document.querySelectorAll(".copy-btn"),
+            },
+            toast: document.getElementById("toast"),
+          };
+
+          this.init();
+        }
+
+        init() {
+          this.loadState();
+          this.bindEvents();
+          this.render();
+          this.setupAutoResize();
+          document.getElementById("year").textContent =
+            new Date().getFullYear();
+        }
+
+        bindEvents() {
+          this.dom.inputs.forEach((input) => {
+            input.addEventListener("input", (e) => {
+              this.state[e.target.id] = e.target.value;
+              this.saveState();
+              this.render();
+            });
+          });
+
+          this.dom.buttons.copies.forEach((btn) => {
+            btn.addEventListener("click", () => {
+              const targetId = btn.dataset.target;
+              const text =
+                this.dom.outputs[targetId.replace("Output", "")].textContent;
+              this.copyToClipboard(text);
+            });
+          });
+
+          this.dom.buttons.reset.addEventListener("click", () => {
+            if (confirm("Очистити матрицю?")) {
+              this.resetState();
+            }
+          });
+        }
+
+        generatePrompt() {
+          const s = this.state;
+          if (!s.dilemma && !s.q1) return "Опиши дилему, щоб отримати аналіз.";
+
+          return `Act as a Senior Decision Strategist and Psychologist.
+
+I am using the Descartes Square (Cartesian Logic) to make a difficult decision.
+My Dilemma: "${s.dilemma || "Should I do X?"}"
+
+Here is my analysis:
+
+1. What WILL happen if I DO it? (Pros of Action):
+"${s.q1}"
+
+2. What WILL happen if I DON'T do it? (Pros of Status Quo):
+"${s.q2}"
+
+3. What will NOT happen if I DO it? (Price of Action / Losses):
+"${s.q3}"
+
+4. What will NOT happen if I DON'T do it? (Price of Inaction / Missed Opportunities):
+"${s.q4}"
+
+YOUR TASK:
+1. Analyze the weight of arguments in all 4 quadrants.
+2. Identify which fear is holding me back (Fear of loss vs Fear of unknown).
+3. Assign a "Success Probability Score" (0-100%) if I choose to ACT.
+4. Give a final recommendation: GO or NO GO.
+
+Reply in Ukrainian, be objective and direct.`;
+        }
+
+        generateSummary() {
+          const s = this.state;
+          return `DILEMMA: ${s.dilemma}
+
+[+] IF I DO IT:
+${s.q1 || "-"}
+
+[+] IF I DON'T DO IT:
+${s.q2 || "-"}
+
+[-] LOSSES IF I DO IT:
+${s.q3 || "-"}
+
+[-] LOSSES IF I DON'T DO IT:
+${s.q4 || "-"}`;
+        }
+
+        saveState() {
+          localStorage.setItem(this.storageKey, JSON.stringify(this.state));
+        }
+
+        loadState() {
+          const saved = localStorage.getItem(this.storageKey);
+          if (saved) {
+            this.state = { ...this.state, ...JSON.parse(saved) };
+            Object.keys(this.state).forEach((key) => {
+              const el = document.getElementById(key);
+              if (el) el.value = this.state[key];
+            });
+          }
+        }
+
+        resetState() {
+          localStorage.removeItem(this.storageKey);
+          location.reload();
+        }
+
+        render() {
+          this.dom.outputs.summary.textContent = this.generateSummary();
+          this.dom.outputs.prompt.textContent = this.generatePrompt();
+        }
+
+        setupAutoResize() {
+          const tx = document.getElementsByTagName("textarea");
+          for (let i = 0; i < tx.length; i++) {
+            tx[i].style.height = tx[i].scrollHeight + "px";
+            tx[i].addEventListener(
+              "input",
+              function () {
+                this.style.height = 0;
+                this.style.height = this.scrollHeight + "px";
+              },
+              false
+            );
+          }
+        }
+
+        copyToClipboard(text) {
+          navigator.clipboard.writeText(text).then(() => {
+            const t = this.dom.toast;
+            t.className = "show";
+            setTimeout(() => {
+              t.className = t.className.replace("show", "");
+            }, 3000);
+          });
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        new DecisionApp();
+      });
+    </script>
+  </body>
+</html>
